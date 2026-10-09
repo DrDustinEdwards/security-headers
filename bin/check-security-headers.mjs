@@ -2,7 +2,7 @@
 /**
  * The header check against live URLs, for a site's CI:
  *
- *   node packages/security-headers/bin/check-security-headers.mjs https://example.com/ https://example.com/admin
+ *   node bin/check-security-headers.mjs https://example.com/ https://example.com/admin
  *
  * Each URL is fetched without following redirects (a 302 must carry the set too) and graded by
  * checkSecurityHeaders. Exits 1 on any failure, 2 when a URL cannot be fetched, so an unreachable site
