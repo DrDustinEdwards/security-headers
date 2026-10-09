@@ -3,7 +3,7 @@
  * Refreshes the package's copy of the OWASP Secure Headers Project data from the project itself, so no default is
  * typed from memory:
  *
- *   node packages/security-headers/update-owasp.mjs
+ *   node update-owasp.mjs
  *
  * It reads, from the project's repository (https://github.com/OWASP/www-project-secure-headers, the source of
  * https://owasp.org/www-project-secure-headers/):
@@ -72,7 +72,7 @@ const block = [
   "<!-- owasp:begin -->",
   `The defaults are read from the OWASP Secure Headers Project, not typed here: page ${PAGE}, data ${REPO}/tree/master/ci`,
   `(\`headers_add.json\`, \`headers_remove.json\`, last updated by OWASP ${add.last_update_utc ?? "(not stated)"} UTC), and its header test suite`,
-  `\`subprojects/validator/tests_suite.yml\`, all read on **${fetchedAt}**. Refresh with \`node packages/security-headers/update-owasp.mjs\`.`,
+  `\`subprojects/validator/tests_suite.yml\`, all read on **${fetchedAt}**. Refresh with \`node update-owasp.mjs\`.`,
   "<!-- owasp:end -->",
 ].join("\n");
 const readmePath = here("README.md");

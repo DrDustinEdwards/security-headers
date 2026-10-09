@@ -1,8 +1,8 @@
 {
-  "name": "@dustinedwards/security-headers",
-  "version": "0.1.1",
+  "name": "@dustinedwards/site-runtime",
+  "version": "0.2.0",
   "private": true,
-  "description": "OWASP Secure Headers Project defaults, a Content-Security-Policy built from a per-site list of what a site loads, and the check a site runs in CI to prove its responses carry them.",
+  "description": "The portfolio sites' shared runtime. Today: OWASP Secure Headers Project defaults, a Content-Security-Policy built from a per-site list of what a site loads, and the check a site runs in CI to prove its responses carry them.",
   "type": "module",
   "exports": {
     ".": {
