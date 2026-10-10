@@ -2,7 +2,8 @@
 
 The shared runtime code for the portfolio's sites (ruling capsid/rulings/shared-homes-2026-10-06.md). This repository was
 `DrDustinEdwards/security-headers` and was renamed on 2026-10-08, keeping its history and tags; `v0.1.0` and `v0.1.1` are the
-package under its old name, `@dustinedwards/security-headers`. Today it holds the security headers. The rate limiter, the
+package under its old name, `@dustinedwards/security-headers`. Today it holds the security headers (the root export and
+`./headers`, `./csp`, `./check`, `./oshp`, `./owasp`) and the rate limiter (`./rate-limit`, `./rate-limit/durable-object`). The
 health format, the Access check and the email helper are to move in later, each as its own subpath and its own pull request.
 
 ## Security headers
@@ -113,6 +114,48 @@ changed set of failures.
 2. Build the policy with `buildContentSecurityPolicy` from the site's own list.
 3. In CI, run `checkSecurityHeaders` on rendered responses and `runOshpSuite` on the set (see
    `test/security-headers-package.test.mjs` and `test/worker/public-csp.test.ts` in dustinedwards-info).
+
+## Rate limiter
+
+One exact rate limiter for the sites, moved here from `DrDustinEdwards/rate-limit` at its `v0.1.1` (commit `57feb84`; that
+repository's later commits change only its `renovate.json`). A SQLite-backed Durable Object counts fixed windows in synchronous
+SQL, so the count cannot race. Each call site says what a failing counter means; the module has no default for it.
+
+Not the Workers Rate Limiting binding (Cloudflare documents it as "permissive, eventually consistent, and intentionally designed to
+not be used as an accurate accounting system") and not KV (read-modify-write races).
+
+```js
+import { limit, limitedResponse, mustStop, ipKey } from "@dustinedwards/site-runtime/rate-limit";
+import { RateLimiter } from "@dustinedwards/site-runtime/rate-limit/durable-object";
+
+export { RateLimiter }; // the Worker exports the class and binds it in wrangler.jsonc
+
+const { key } = ipKey("ask", request);
+const verdict = await limit(env.RATE_LIMITER, key, [{ limit: 300, windowSeconds: 3600 }, { limit: 1000, windowSeconds: 86400 }], {
+  onUnavailable: "refuse", // or "allow": required
+});
+if (mustStop(verdict, "refuse")) return limitedResponse(verdict);
+```
+
+- `verdict.status` is `"ok"`, `"limited"` or `"unavailable"`.
+- `limitedResponse` is a 429 with `Retry-After` set to the seconds left in the window, or a 503 with `Retry-After: 60` when the
+  counter is unavailable and the site refuses. Never a success code.
+- `"allow"` still returns `status: "unavailable"` and logs one structured line (the key's bucket, never the address or account).
+- All rules for a key are checked first; if one is spent none is counted, and a refused request writes nothing.
+- An alarm clears an idle instance's rows after its longest window.
+- `matchRule(request, rules)` matches `{ path, prefix?, methods? }` after percent-decoding, collapsing slashes, dropping a trailing
+  slash and lower-casing, so `/LOGIN`, `/login///` and `/%4cogin` all match `/login`.
+
+A Worker that already has a Durable Object class it cannot rename (a rename needs a migration) can `extend RateLimiter`; the
+counting is in its own `rate_window` table, so the class and its storage are unchanged by the move.
+
+**Cost, quoted from Cloudflare's pricing pages (fetched 2026-10-06).** Durable Objects, Paid: requests "1 million / month, +
+$0.15/million"; rows written "First 50 million / month included + $1.00 / million rows". KV, Paid: reads "+ $0.50/million";
+writes "+ $5.00/million". Per million allowed requests one window costs about $1.15 on a Durable Object and $5.50 on KV; a
+refused request on the Durable Object costs a request and a row read, no write.
+
+**Tests.** `npm test` runs `test/rate-limit.test.mjs`: window edges, a spent rule counting nothing, Retry-After, the fail-closed
+and fail-open paths, and the path matcher on an in-memory SQLite (`node:sqlite`). CI runs it on every pull request.
 
 ## Publishing it
 
