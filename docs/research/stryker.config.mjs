@@ -14,6 +14,8 @@ import process from "node:process";
 const CHUNKS = {
   headers: ["headers.mjs", "owasp-headers.mjs", "csp.mjs", "check.mjs", "oshp-suite.mjs", "index.mjs", "update-owasp.mjs", "bin/*.mjs"],
   "rate-limit": ["rate-limit/*.mjs"],
+  // The security headers, CSP builder and header check (job_e520453432e8), a subset of headers.
+  "headers-tested": ["headers.mjs", "csp.mjs", "check.mjs", "bin/*.mjs"],
 };
 const chunk = process.env.STRYKER_CHUNK;
 if (!CHUNKS[chunk]) throw new Error(`STRYKER_CHUNK must be one of ${Object.keys(CHUNKS).join(", ")}`);
